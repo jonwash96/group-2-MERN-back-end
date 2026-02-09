@@ -1,100 +1,123 @@
-//* MNT
 const mongoose = require('mongoose');
-const { WebLink, webLinkSchema} = require('./WebLink.js');
-const { Item, itemSchema } = require('./Item.js');
-
-//* DATA
-const ownerSchema = new mongoose.Schema({ //! Remove
-    username:String,
-    displayname:String,
-    ownerID:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'User',
-        required:true
-    }
-}, {_id:false});
 
 const expenseSchema = new mongoose.Schema({
-    name:{type:String, required:true, default:"untitled_expense"},
-    description:{type:String, required:false},
-    status:{type:String, required:true, default:'onging'},
-    created_at:{type:Number, required:true, default:Date.now()},
-    updated_at:{type:Number, required:true, default:Date.now()},
-    for:{type:mongoose.Schema.Types.ObjectId, required:true},
-    items:[{type:itemSchema, required:true}],
-    receipts:[{type:webLinkSchema, required:false}],
-    photos:[{type:webLinkSchema, required:false}],
-    webLinks:[{type:webLinkSchema, required:false}],
-    totals:{
-        items:[{type:Number, required:true, default:[0]}],
-        credits:[{type:Number, required:true, default:[0]}],
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'User is required']
+  },
+  
+  amount: {
+    type: Number,
+    required: [true, 'Amount is required'],
+    min: [0, 'Amount must be positive']
+  },
+  category: {
+    type: String,
+    required: [true, 'Category is required'],
+    enum: ['Housing', 'Food', 'Transport', 'Utilities', 'Entertainment', 'Other', 'Healthcare', 'Shopping', 'Education', 'Personal'],
+    default: 'Other'
+  },
+  date: {
+    type: Date,
+    required: [true, 'Date is required'],
+    default: Date.now
+  },
+  merchant: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Merchant',
+    default: null
+  },
+  isRecurring: {
+    type: Boolean,
+    default: false
+  },
+  recurringExpense: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'RecurringExpense',
+    default: null
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', 'Digital Wallet', 'Other'],
+    default: 'Other'
+  },
+  notes: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  receiptUrl: {
+    type: String,
+    default: null
+  },
+  tags: [{
+    type: String,
+    trim: true
+  }],
+  isDeleted: {
+    type: Boolean,
+    default: false
+  }
+}, {
+  timestamps: true
+});
+
+// Index for efficient queries
+expenseSchema.index({ user: 1, date: -1 });
+expenseSchema.index({ user: 1, category: 1 });
+expenseSchema.index({ user: 1, isDeleted: 1 });
+
+// Virtual for month/year grouping
+expenseSchema.virtual('monthYear').get(function() {
+  const date = new Date(this.date);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+});
+
+// Static method to get total spending for a user in a date range
+expenseSchema.statics.getTotalSpending = async function(userId, startDate, endDate) {
+  const result = await this.aggregate([
+    {
+      $match: {
+        user: mongoose.Types.ObjectId(userId),
+        date: { $gte: startDate, $lte: endDate },
+        isDeleted: false
+      }
     },
-    owner:{
-        type:mongoose.Schema.Types.ObjectId, 
-        ref:'userProfile',
-        required:true
+    {
+      $group: {
+        _id: null,
+        total: { $sum: '$amount' }
+      }
+    }
+  ]);
+  
+  return result.length > 0 ? result[0].total : 0;
+};
+
+expenseSchema.statics.getSpendingByCategory = async function(userId, startDate, endDate) {
+  return await this.aggregate([
+    {
+      $match: {
+        user: mongoose.Types.ObjectId(userId),
+        date: { $gte: startDate, $lte: endDate },
+        isDeleted: false
+      }
     },
-});
+    {
+      $group: {
+        _id: '$category',
+        total: { $sum: '$amount' },
+        count: { $sum: 1 }
+      }
+    },
+    {
+      $sort: { total: -1 }
+    }
+  ]);
+};
 
-//* MID
-expenseSchema.pre('save', function() {
-    const date = Date.now()
-    if (this.isNew) this.created_at = date;
-    this.updated_at = date;
-    return;
-});
+expenseSchema.set('toJSON', { virtuals: true });
+expenseSchema.set('toObject', { virtuals: true });
 
-// Create
-expenseSchema.pre('save', async function() {
-    if (!this.isNew) return;
-
-    typeof this.for===null && delete this.for;
-
-    const itemId = new mongoose.Types.ObjectId();
-
-    const _items = {};
-    for (let key in this) {
-        if (/item/.test(key)) {
-            const pos = key.split('_')[0];
-            const k = key.split('_')[1];
-            const v = this[key];
-            _items[pos] = {[k]:v};
-        };
-        if (/webLink/.test(key)) { //! Do I have to construct a new web link, or just push the raw object to the typed array?
-            this.webLinks.push( new WebLink({
-                title:this[key][0],
-                description:this[key][1],
-                url:this[key][2],
-            }) )
-        };
-        if (/receipt/.test(key)) {
-            this.webLinks.push( new WebLink({
-                title:this[key][0],
-                description:this[key][1],
-                url:this[key][2],
-            }) )
-        };
-        if (/photo/.test(key)) {
-            this.webLinks.push( new WebLink({
-                title:this[key][0],
-                description:this[key][1],
-                url:this[key][2],
-            }) )
-        };
-    };
-    for (let I in Object.values(_items)) {
-        new Item({ ...I, _id:itemId, for:this._id, owner:this.owner })
-    };
-    
-    const upstream = await Tracker.findById(this.for);
-    upstream.expenses.push(this._id);
-    upstream.save();
-
-    return;
-});
-
-//* MODEL
-const Expense = mongoose.model('Expense', expenseSchema);
-
-//* IO
-module.exports = { Expense, expenseSchema};
+module.exports = mongoose.model('Expense', expenseSchema);
