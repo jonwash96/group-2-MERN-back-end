@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-
+const requireAuth = require("../middleware/requireAuth");
 const { User, UserProfile } = require("../models/User");
 
 const saltRounds = 12;
@@ -64,6 +64,20 @@ router.post("/sign-up", async (req, res) => {
   } catch (error) {
     return res.status(500).json({ message: error.message || "Server error" });
   }
+
+  // GET /auth/me
+  router.get("/me", requireAuth, async (req, res) => {
+    const user = await User.findById(req.user._id).populate("profile");
+    if (!user) return res.status(404).json({ message: "User not found." });
+    res.json({
+      user: {
+        _id: user._id,
+        username: user.username,
+        profile: user.profile?._id,
+      },
+      profile: user.profile,
+    });
+  });
 
   // POST /auth/sign-in
   router.post("/sign-in", async (req, res) => {
