@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema({
     password:{
         type:String,
         required:true,
-        selected:false
+        select:false
     },
     activities:[{
         type:mongoose.Schema.Types.ObjectId,
