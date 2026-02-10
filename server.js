@@ -9,7 +9,7 @@ const testAuthRoutes = require('./controllers/test-jwt')
 const authRoutes = require('./controllers/auth')
 const userRoutes = require('./controllers/user');
 const expenseRoutes = require("./controllers/expenses.js");
-const verifyToken = require('./middleware/verify-token');
+// const verifyToken = require('./middleware/verify-token');
 
 //* VAR
 const PORT = process.env.PORT || 3009;
@@ -20,7 +20,7 @@ const app = express();
 //* MID
 app.use(cors());
 app.use(express.json());
-app.use(logger('dev'));
+app.use(morgan('dev'));
 
 //* ROUTE
 app.get("/", (req, res) => {
@@ -35,7 +35,7 @@ app.use('/users', userRoutes);
 app.use("/expenses", expenseRoutes);
 
 // AUTHENTICATED ROUTES
-app.use(verifyToken);
+// app.use(verifyToken);
 
 
 //* LISTEN
