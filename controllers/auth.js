@@ -64,67 +64,67 @@ router.post("/sign-up", async (req, res) => {
   } catch (error) {
     return res.status(500).json({ message: error.message || "Server error" });
   }
+});
 
-  // GET /auth/me
-  router.get("/me", requireAuth, async (req, res) => {
-    const user = await User.findById(req.user._id).populate("profile");
-    if (!user) return res.status(404).json({ message: "User not found." });
-    res.json({
+// GET /auth/me
+router.get("/me", requireAuth, async (req, res) => {
+  const user = await User.findById(req.user._id).populate("profile");
+  if (!user) return res.status(404).json({ message: "User not found." });
+  res.json({
+    user: {
+      _id: user._id,
+      username: user.username,
+      profile: user.profile?._id,
+    },
+    profile: user.profile,
+  });
+});
+
+// POST /auth/sign-in
+router.post("/sign-in", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username?.trim() || !password) {
+      return res
+        .status(400)
+        .json({ message: "Username and password are required" });
+    }
+
+    const user = await User.findOne({ username: username.trim() })
+      .select("+password")
+      .populate("profile");
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const isMatch = bcrypt.compareSync(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const token = signToken(user);
+
+    return res.status(200).json({
+      token,
       user: {
         _id: user._id,
         username: user.username,
         profile: user.profile?._id,
       },
-      profile: user.profile,
+      profile: user.profile
+        ? {
+            _id: user.profile._id,
+            username: user.profile.username,
+            displayName: user.profile.displayName,
+          }
+        : null,
     });
-  });
-
-  // POST /auth/sign-in
-  router.post("/sign-in", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-
-      if (!username?.trim() || !password) {
-        return res
-          .status(400)
-          .json({ message: "Username and password are required" });
-      }
-
-      const user = await User.findOne({ username: username.trim() })
-        .select("+password")
-        .populate("profile");
-
-      if (!user) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      const isMatch = bcrypt.compareSync(password, user.password);
-
-      if (!isMatch) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      const token = signToken(user);
-
-      return res.status(200).json({
-        token,
-        user: {
-          _id: user._id,
-          username: user.username,
-          profile: user.profile?._id,
-        },
-        profile: user.profile
-          ? {
-              _id: user.profile._id,
-              username: user.profile.username,
-              displayName: user.profile.displayName,
-            }
-          : null,
-      });
-    } catch (error) {
-      return res.status(500).json({ message: error.message || "Server error" });
-    }
-  });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Server error" });
+  }
 });
 
 module.exports = router;
