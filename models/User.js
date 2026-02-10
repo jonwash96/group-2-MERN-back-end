@@ -4,11 +4,12 @@ const mongoose = require('mongoose');
 //* DATA
 const userProfileSchema = new mongoose.Schema({
     username:{type:String, required:true, unique:true},
-    displayname:{type:String, required:true},
-    userID:{
+    displayName:{type:String, required:true},
+    userId:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'User',
-        required:true
+        required:false,
+        default:null
     },
     photo:{
         type:mongoose.Schema.Types.ObjectId,
@@ -85,7 +86,6 @@ const userSchema = new mongoose.Schema({
 //* MID
 userSchema.pre('validate', function() {
     console.log(this)
-    if (!this.displayname) this.displayname = this.username;
     if (this.isNew) this.created_at = Date.now();
 })
 
