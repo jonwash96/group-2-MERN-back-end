@@ -34,7 +34,7 @@ router.post("/sign-up", async (req, res) => {
     // create profile
     const profile = await UserProfile.create({
       username: username.trim(),
-      displayName: displayName?.trim(),
+      displayName: displayName?.trim() || username.trim(),
       userId: null,
     });
 
@@ -124,6 +124,20 @@ router.post("/sign-in", async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ message: error.message || "Server error" });
+  }
+});
+
+// POST auth/sign-out
+router.post("/sign-out", requireAuth, async (req, res) => {
+  try {
+    // optional activity log
+    // await Activity.log({user: req.user._id, action: "user_logout"})
+
+    return res.status(200).json({
+      message: "Signed out successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Sign out failed" });
   }
 });
 
