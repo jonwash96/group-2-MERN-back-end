@@ -8,6 +8,7 @@ const morgan = require('morgan');
 const testAuthRoutes = require('./controllers/test-jwt')
 const authRoutes = require('./controllers/auth')
 const userRoutes = require('./controllers/user');
+const expenseRoutes = require("./controllers/expenses.js");
 const verifyToken = require('./middleware/verify-token');
 
 //* VAR
@@ -31,6 +32,7 @@ app.get("/", (req, res) => {
 app.use('/test-jwt', testAuthRoutes);
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
+app.use("/expenses", expenseRoutes);
 
 // AUTHENTICATED ROUTES
 app.use(verifyToken);
