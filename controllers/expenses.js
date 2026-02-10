@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const Expense = requier("../models/Expense");
+const Expense = require("../models/Expense");
 const requireAuth = require("../middleware/requireAuth");
 
 // all expense routes require auth

@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const { User } = require("../models/User");
-const verifyToken = require("../middleware/verify-token");
+const requireAuth = require("../middleware/requireAuth");
 
 // Index (non-authenticated) GET /users
 router.get("/", async (req, res) => {
@@ -13,7 +13,7 @@ router.get("/", async (req, res) => {
 });
 
 // Get Profile (Authenticated) GET /:userId
-router.get("/:userId", verifyToken, async (req, res) => {
+router.get("/:userId", requireAuth, async (req, res) => {
   try {
     if (req.user._id !== req.params.userId) {
       res.status(403);
