@@ -6,8 +6,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
 const testAuthRoutes = require('./controllers/test-jwt')
-const authController = require('./controllers/auth')
-// const userRoutes = require('./controllers/user');
+const authRoutes = require('./controllers/auth')
+const userRoutes = require('./controllers/user');
 const verifyToken = require('./middleware/verify-token');
 
 //* VAR
