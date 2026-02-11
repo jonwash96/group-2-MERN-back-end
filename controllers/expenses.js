@@ -1,22 +1,22 @@
 const router = require("express").Router();
 const Expense = require("../models/Expense");
 const requireAuth = require("../middleware/requireAuth");
+const User = require('../models/User');
 
 // all expense routes require auth
-router.use(requireAuth);
+router.use(requireAuth)
 
 // GET /expenses (index)
 router.get("/", async (req, res) => {
   try {
-    const expenses = await Expense.find({
-      user: req.user._id,
-      isDeleted: false,
-    })
+    console.log("@get expenses", req.user)
+    const expenses = await Expense.find({ user: req.user._id })
       .sort({ date: -1 })
-      .populate("merchant");
+      // .populate('merchant');
 
-    res.json({ expenses });
+    res.json(expenses);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -25,15 +25,17 @@ router.get("/", async (req, res) => {
 router.get("/:expenseId", async (req, res) => {
   try {
     const expense = await Expense.findOne({
-      _id: req.params.id,
+      _id: req.params.expenseId,
       user: req.user._id,
       isDeleted: false,
-    }).populate("merchant");
+    })
+    // .populate("merchant");
 
     if (!expense)
       return res.status(500).json({ message: "Expense not found." });
-    res.json({ expense });
+    res.json(expense);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -43,8 +45,12 @@ router.post("/", async (req, res) => {
   try {
     const payload = { ...req.body, user: req.user._id };
     const expense = await Expense.create(payload);
-    res.status(201).json({ expense });
+    let user = await User.findById(req.user._id);
+    user.expenses.push(expense._id);
+    user.save();
+    res.status(201).json(expense);
   } catch (error) {
+    console.error(error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -53,13 +59,13 @@ router.post("/", async (req, res) => {
 router.put("/:expenseId", async (req, res) => {
   try {
     const expense = await Expense.findOneAndUpdate(
-      { _id: req.params.id, user: req.user._id },
+      { _id: req.params.expenseId, user: req.user._id },
       req.body,
       { new: true, runValidators: true },
     );
 
     if (!expense) return res.status(404).json({ message: "Expense not found" });
-    res.json({ expense });
+    res.json(expense);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -69,7 +75,7 @@ router.put("/:expenseId", async (req, res) => {
 router.delete("/:expenseId", async (req, res) => {
   try {
     const expense = await Expense.findOneAndUpdate(
-      { _id: req.params.id, user: req.user._id },
+      { _id: req.params.expenseId, user: req.user._id },
       req.body,
       { new: true, isDeleted: true },
     );

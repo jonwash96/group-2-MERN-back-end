@@ -7,7 +7,7 @@ const activitySchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'User is required']
   },
-  action: {
+  category: {
     type: String,
     required: [true, 'Action is required'],
     enum: [
@@ -19,6 +19,7 @@ const activitySchema = new mongoose.Schema({
       'budget_deleted',
       'budget_exceeded',
       'budget_alert',
+      'user_registration',
       'user_login',
       'user_logout',
       'profile_updated',
@@ -28,9 +29,13 @@ const activitySchema = new mongoose.Schema({
       'recurring_expense_deleted'
     ]
   },
+  action: {
+    type: String,
+    required: false
+  },
   description: {
     type: String,
-    required: true,
+    required: false,
     trim: true
   },
   resourceType: {
@@ -45,19 +50,6 @@ const activitySchema = new mongoose.Schema({
   metadata: {
     type: mongoose.Schema.Types.Mixed,
     default: {}
-  },
-  ipAddress: {
-    type: String,
-    default: null
-  },
-  userAgent: {
-    type: String,
-    default: null
-  },
-  importance: {
-    type: String,
-    enum: ['low', 'medium', 'high'],
-    default: 'low'
   }
 }, {
   timestamps: true

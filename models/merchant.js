@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const merchantSchema = new mongoose.Schema({
   name: {
@@ -9,8 +9,7 @@ const merchantSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    trim: true,
-    default: ''
+    trim: true
   },
   webLink: {
     type: String,
@@ -39,13 +38,18 @@ const merchantSchema = new mongoose.Schema({
     default: 'Other'
   },
   created_at: {
-    type: Date,
-    default: Date.now
+    type: Number
   }
 }, {
   timestamps: true
 });
 
+//* MID
+merchantSchema.pre('validate', function() {
+  if (this.isNew) this.created_at = Date.now();
+  console.log("@MerchantSchema. New Merchant Created:", this)
+});
+/*
 // Index for faster queries
 merchantSchema.index({ name: 1 });
 merchantSchema.index({ category: 1 });
@@ -100,7 +104,7 @@ merchantSchema.statics.getPopular = function(limit = 10) {
     }
   ]);
 };
-
+*/
 const Merchant = mongoose.model('Merchant', merchantSchema);
 
-export default Merchant;
+module.exports = Merchant;

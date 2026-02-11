@@ -6,7 +6,10 @@ const expenseSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'User is required']
   },
-  
+  title: {
+    type: String,
+    required: [true, 'Title is required'],
+  },
   amount: {
     type: Number,
     required: [true, 'Amount is required'],
@@ -26,16 +29,15 @@ const expenseSchema = new mongoose.Schema({
   merchant: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Merchant',
-    default: null
   },
   isRecurring: {
     type: Boolean,
     default: false
   },
   recurringExpense: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'RecurringExpense',
-    default: null
+    type: Boolean,
+    required:false,
+    default: false
   },
   paymentMethod: {
     type: String,
@@ -55,10 +57,6 @@ const expenseSchema = new mongoose.Schema({
     type: String,
     trim: true
   }],
-  isDeleted: {
-    type: Boolean,
-    default: false
-  }
 }, {
   timestamps: true
 });
