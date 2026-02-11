@@ -2,6 +2,7 @@ const router = require("express").Router();
 const Expense = require("../models/Expense");
 const requireAuth = require("../middleware/requireAuth");
 const User = require('../models/User');
+// THIS LINE OF CODE SERVES ONE PURPOSE. MAN OVER MACHINE RE: GIT LOG/PUSH
 
 // all expense routes require auth
 router.use(requireAuth)
