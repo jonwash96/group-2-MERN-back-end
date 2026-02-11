@@ -3,7 +3,11 @@ const router = express.Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const requireAuth = require("../middleware/requireAuth");
-const { User, UserProfile } = require("../models/User");
+const mongoose = require('mongoose');
+const User = require("../models/User");
+const Notification = require('../models/Notification');
+const { WebLink } = require('../models/WebLink');
+const Activity = require('../models/Activity');
 
 const saltRounds = 12;
 
@@ -15,7 +19,7 @@ function signToken(user) {
 // POST /auth/sign-up
 router.post("/sign-up", async (req, res) => {
   try {
-    const { username, password, displayName } = req.body;
+    const { username, password, email } = req.body;
 
     if (!username?.trim() || !password) {
       return res
@@ -31,53 +35,72 @@ router.post("/sign-up", async (req, res) => {
         .json({ message: `User with username ${username} already exists.` });
     }
 
-    // create profile
-    const profile = await UserProfile.create({
-      username: username.trim(),
-      displayName: displayName?.trim() || username.trim(),
-      userId: null,
-    });
-
     const hashed = bcrypt.hashSync(password, saltRounds);
 
-    const user = await User.create({
-      username: username.trim(),
-      password: hashed,
-      profile: profile._id,
-    });
+    const newUserId = new mongoose.Types.ObjectId();
+    const welcomeNotificationId = new mongoose.Types.ObjectId();
+    const newUserActivityId = new mongoose.Types.ObjectId();
 
-    profile.userId = user._id;
-    await profile.save();
+    const newUserActivity = new Activity({
+      _id: newUserActivityId,
+      user: newUserId,
+      category: 'user_registration',
+      resourceType: 'User',
+      resourceId: newUserId,
+    });
+    newUserActivity.save();
+
+    const welcomeNotification = new Notification({
+      _id: welcomeNotificationId,
+      title: "Welcome to the App! Click to set up Your Profile.",
+      description: "Click here to set up your profile",
+      status: "unread",
+      action: '/profile/edit',
+      prority: 3,
+      activityId: newUserActivityId
+    });
+    welcomeNotification.save();
+
+    let profilePhoto = await WebLink.findOne({title: "Default Profile Photo"});
+    if (!profilePhoto) {
+      profilePhoto = new WebLink({
+        title: "Default Profile Photo",
+        category: 'photo',
+        url: '/default-profile-photo.jpg'
+      });
+      profilePhoto = await profilePhoto.save();
+    };
+
+    let user = new User({
+      _id: newUserId,
+      username: username.trim(),
+      displayName: username.trim(),
+      password: hashed,
+      email: email,
+      notifications: [welcomeNotificationId],
+      activity: [newUserActivityId],
+      photo: profilePhoto
+    });
+    user = await user.save();
+    await user.populate('notifications activity');
 
     const token = signToken(user);
 
     // return safe user data
-    return res.status(201).json({
-      token,
-      user: { _id: user._id, username: user.username, profile: profile._id },
-      profile: {
-        _id: profile._id,
-        username: profile.username,
-        displayName: profile.displayName,
-      },
-    });
+    return res.status(201).json({token, user});
   } catch (error) {
+    console.error(error);
     return res.status(500).json({ message: error.message || "Server error" });
   }
 });
 
 // GET /auth/me
 router.get("/me", requireAuth, async (req, res) => {
-  const user = await User.findById(req.user._id).populate("profile");
+  const user = await User.findById(req.user._id)
+    .populate({path: 'notifications', populate:{path: 'activityId'}})
+    .populate("activity expenses receipts");
   if (!user) return res.status(404).json({ message: "User not found." });
-  res.json({
-    user: {
-      _id: user._id,
-      username: user.username,
-      profile: user.profile?._id,
-    },
-    profile: user.profile,
-  });
+  res.json(user);
 });
 
 // POST /auth/sign-in
@@ -93,7 +116,8 @@ router.post("/sign-in", async (req, res) => {
 
     const user = await User.findOne({ username: username.trim() })
       .select("+password")
-      .populate("profile");
+      .populate({path: 'notifications', populate:{path: 'activityId'}})
+      .populate("notifications activity expenses receipts");
 
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -107,21 +131,7 @@ router.post("/sign-in", async (req, res) => {
 
     const token = signToken(user);
 
-    return res.status(200).json({
-      token,
-      user: {
-        _id: user._id,
-        username: user.username,
-        profile: user.profile?._id,
-      },
-      profile: user.profile
-        ? {
-            _id: user.profile._id,
-            username: user.profile.username,
-            displayName: user.profile.displayName,
-          }
-        : null,
-    });
+    return res.status(200).json({ token, user });
   } catch (error) {
     return res.status(500).json({ message: error.message || "Server error" });
   }

@@ -15,27 +15,31 @@ const webLinkSchema = new mongoose.Schema({
   url: {
     type: String,
     required: [true, 'URL is required'],
-    trim: true,
-    validate: {
-      validator: function(v) {
-        try {
-          const urlObj = new URL(v);
-          return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
-        } catch (e) {
-          return false;
-        }
-      },
-      message: 'Invalid HTTP or HTTPS URL'
-    }
+    trim: true
+  },
+  category: {
+    type: String,
+    enum: ['website', 'photo'],
+    required: false,
+    default: 'website'
   },
   domain: {
     type: String,
     trim: true
   },
   created_at: {
-    type: Date,
-    default: Date.now
+    type: Number,
+    required: false
   }
 }, {
   timestamps: true
 });
+
+webLinkSchema.pre('validate', function() {
+  if (this.isNew) this.created_at = Date.now();
+  this.isNew && console.log("@WebLink. New Link Created:", this)
+});
+
+const WebLink = mongoose.model('WebLink', webLinkSchema);
+
+module.exports = { WebLink, webLinkSchema };

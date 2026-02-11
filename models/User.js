@@ -1,59 +1,26 @@
 //* MNT
 const mongoose = require('mongoose');
-
-//* DATA
-const userProfileSchema = new mongoose.Schema({
-    username:{type:String, required:true, unique:true},
-    displayName:{type:String, required:true},
-    userId:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'User',
-        required:false,
-        default:null
-    },
-    photo:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'WebLink',
-        required:false
-    },
-    friends:[{
-        type:mongoose.Schema.Types.ObjectId, 
-        ref:'UserProfile',
-        required:false
-    }]
-})
+const { webLinkSchema } = require('./WebLink');
 
 const userSchema = new mongoose.Schema({
     created_at:{type:Number, required:true},
     username:{type:String, required:true},
-    profile:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'UserProfile',
-        required:true,
-    },
+    displayName:{type:String, required:false},
+    photo:webLinkSchema,
     password:{
         type:String,
         required:true,
         select:false
     },
-    activities:[{
+    activity:[{
         type:mongoose.Schema.Types.ObjectId,
         ref:'Activity',
         required:false,
         default:[]
     }],
     notifications:[{
-        status:{type:String, required:true, default:'unseen'},
-        created_at:{type:Number, required:true, default:Date.now()},
-        bodyID:{
-            type:mongoose.Schema.Types.ObjectId,
-            ref:'Activity',
-            required:false,
-        }
-    }],
-    trackers:[{
         type:mongoose.Schema.Types.ObjectId,
-        ref:'Tracker',
+        ref:'Notification',
         required:false,
         default:[]
     }],
@@ -69,29 +36,22 @@ const userSchema = new mongoose.Schema({
         required:false,
         default:[]
     }],
-    assignments:[{
+    budgets:[{
         type:mongoose.Schema.Types.ObjectId,
-        ref:'Assignee',
-        required:false,
-        default:[]
-    }],
-    credits:[{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'Credit',
+        ref:'Budget',
         required:false,
         default:[]
     }]
-});
+}, {timestamps: true});
 
 //* MID
 userSchema.pre('validate', function() {
-    console.log(this)
     if (this.isNew) this.created_at = Date.now();
-})
+    console.log("@UserSchema. New User Created:", this)
+});
 
 //* MODEL
 const User = mongoose.model('User', userSchema);
-const UserProfile = mongoose.model('UserProfile', userProfileSchema);
 
 //* IO
-module.exports = { User, UserProfile };
+module.exports = User;
