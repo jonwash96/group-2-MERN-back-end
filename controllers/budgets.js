@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const Budget = require("../models/Budget");
 const requireAuth = require("../middleware/requireAuth");
+const { log } = console;
 
 // all budget routes require auth (same pattern as expenses)
 router.use(requireAuth);
@@ -12,7 +13,7 @@ router.get("/", async (req, res) => {
       createdAt: -1,
     });
 
-    res.json({ budgets });
+    res.json(budgets);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -28,7 +29,7 @@ router.get("/:budgetId", async (req, res) => {
 
     if (!budget) return res.status(404).json({ message: "Budget not found" });
 
-    res.json({ budget });
+    res.json(budget);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -40,7 +41,7 @@ router.put("/", async (req, res) => {
     const payload = { ...req.body, ownerID: req.user._id };
     const budget = await Budget.create(payload);
 
-    res.status(201).json({ budget });
+    res.status(201).json(budget);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -57,7 +58,7 @@ router.put("/:budgetId", async (req, res) => {
 
     if (!budget) return res.status(404).json({ message: "Budget not found" });
 
-    res.json({ budget });
+    res.json(budget);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -73,7 +74,7 @@ router.delete("/:budgetId", async (req, res) => {
 
     if (!budget) return res.status(404).json({ message: "Budget not found" });
 
-    res.json({ message: "Deleted", budget });
+    res.json({ message: "Deleted"}, budget);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
