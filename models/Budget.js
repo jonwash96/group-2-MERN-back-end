@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const budgetSchema = new mongoose.Schema({
     name: {
@@ -11,7 +11,7 @@ const budgetSchema = new mongoose.Schema({
         trim: true,
         default: ''
     },
-    caztegory: {
+    category: {
         type: String,
         required: [true, 'Budget category is required'],
         enum: ['Food', 'Transportation', 'Entertainment', 'Utilities', 'Health', 'Education', 'Other'],
@@ -75,6 +75,4 @@ budgetSchema.statics.getUserBudgets = function(userId) {
   return this.find({ ownerID: userId }).sort({ category: 1 });
 };
 
-const Budget = mongoose.model('Budget', budgetSchema);
-
-export default Budget;
+module.exports = mongoose.model('Budget', budgetSchema);
