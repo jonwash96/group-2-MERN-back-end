@@ -1,21 +1,79 @@
 const router = require("express").Router();
 const Expense = require("../models/Expense");
 const requireAuth = require("../middleware/requireAuth");
-const User = require('../models/User');
+const User = require("../models/User");
+const mongoose = require("mongoose");
 // THIS LINE OF CODE SERVES ONE PURPOSE. MAN OVER MACHINE RE: GIT LOG/PUSH
 
 // all expense routes require auth
-router.use(requireAuth)
+router.use(requireAuth);
+
+// helpers
+function getMonthRange(date = new Date()) {
+  const start = new Date(date.getFullYear(), date.getMonth(), 1);
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+  return { start, end };
+}
+
+function parseMonthOrRange(req) {
+  // supports: ?month=YYYY-MM or ?start=YYYY-MM-DD&end=YYYY-MM-DD
+  const { month, start, end } = req.query;
+
+  if (month) {
+    const baseDate = new Date(`${month}-01T00:00:00.000Z`);
+    return getMonthRange(baseDate);
+  }
+
+  if (start && end) {
+    return { start: new Date(start), end: new Date(end) };
+  }
+
+  return { start: null, end: null };
+}
 
 // GET /expenses (index)
 router.get("/", async (req, res) => {
   try {
-    console.log("@get expenses", req.user)
-    const expenses = await Expense.find({ user: req.user._id })
-      .sort({ date: -1 })
-      // .populate('merchant');
+    const { start, end } = parseMonthOrRange(req);
+
+    const filter = { user: req.user._id, isDeleted: false };
+    if (start && end) filter.date = { $gte: start, $lt: end };
+
+    console.log("@get expenses", req.user);
+    const expenses = await Expense.find({ user: req.user._id }).sort({
+      date: -1,
+    });
 
     res.json(expenses);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /expenses/by-category?month=YYYY-MM
+router.get("/by-category", async (req, res) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.user._id);
+    const { start, end } = parseMonthOrRange(req);
+
+    const match = { user: userId, isDeleted: false };
+    if (start && end) match.date = { $gte: start, $lt: end };
+
+    const categories = await Expense.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: "$category",
+          total: { $sum: "$amount" },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { total: -1 } },
+      { $project: { _id: 0, category: "$_id", total: 1, count: 1 } },
+    ]);
+
+    res.json({ range: start && end ? { start, end } : null, categories });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: error.message });
@@ -29,7 +87,7 @@ router.get("/:expenseId", async (req, res) => {
       _id: req.params.expenseId,
       user: req.user._id,
       isDeleted: false,
-    })
+    });
     // .populate("merchant");
 
     if (!expense)
