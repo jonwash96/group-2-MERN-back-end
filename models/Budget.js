@@ -75,4 +75,4 @@ budgetSchema.statics.getUserBudgets = function(userId) {
   return this.find({ ownerID: userId }).sort({ category: 1 });
 };
 
-module.exports = mongoose.model('Budget', budgetSchema);
+module.exports = mongoose.model('Budget', budgetSchema); 
