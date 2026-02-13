@@ -14,7 +14,21 @@ const budgetSchema = new mongoose.Schema({
     category: {
         type: String,
         required: [true, 'Budget category is required'],
-        enum: ['Food', 'Transportation', 'Entertainment', 'Utilities', 'Health', 'Education', 'Other'],
+        // Accept both legacy and current category naming used across the app.
+        enum: [
+            'Housing',
+            'Food',
+            'Transport',
+            'Transportation',
+            'Utilities',
+            'Entertainment',
+            'Healthcare',
+            'Health',
+            'Shopping',
+            'Education',
+            'Personal',
+            'Other',
+        ],
         default: 'Other'
     },
     monthlyLimit: {
@@ -39,13 +53,12 @@ const budgetSchema = new mongoose.Schema({
     timestamps: true
 });
 
-budgetSchema.pre('save', function(next) {
+budgetSchema.pre('save', function() {
     this.updated_at = Date.now();
-    next();
 });
 
 budgetSchema.index({ ownerID: 1, created_at: -1 });
-budgetSchema.index({ ownerID: 1, caztegory: 1 });
+budgetSchema.index({ ownerID: 1, category: 1 });
 
 budgetSchema.virtual('remainingBudget').get(function() {
     return new Intl.NumberFormat('en-US', {

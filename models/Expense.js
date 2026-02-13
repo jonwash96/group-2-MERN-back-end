@@ -53,6 +53,10 @@ const expenseSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  isDeleted: {
+    type: Boolean,
+    default: false
+  },
   tags: [{
     type: String,
     trim: true
@@ -79,7 +83,7 @@ expenseSchema.statics.getTotalSpending = async function(userId, startDate, endDa
       $match: {
         user: mongoose.Types.ObjectId(userId),
         date: { $gte: startDate, $lte: endDate },
-        isDeleted: false
+        isDeleted: { $ne: true }
       }
     },
     {
@@ -99,7 +103,7 @@ expenseSchema.statics.getSpendingByCategory = async function(userId, startDate, 
       $match: {
         user: mongoose.Types.ObjectId(userId),
         date: { $gte: startDate, $lte: endDate },
-        isDeleted: false
+        isDeleted: { $ne: true }
       }
     },
     {
