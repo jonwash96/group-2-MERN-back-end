@@ -14,7 +14,6 @@ const budgetSchema = new mongoose.Schema({
     category: {
         type: String,
         required: [true, 'Budget category is required'],
-        // Accept both legacy and current category naming used across the app.
         enum: [
             'Housing',
             'Food',

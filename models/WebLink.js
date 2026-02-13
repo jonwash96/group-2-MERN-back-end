@@ -1,4 +1,3 @@
-//* MNT
 const mongoose = require('mongoose');
 
 const webLinkSchema = new mongoose.Schema({
@@ -37,7 +36,6 @@ const webLinkSchema = new mongoose.Schema({
 
 webLinkSchema.pre('validate', function() {
   if (this.isNew) this.created_at = Date.now();
-  this.isNew && console.log("@WebLink. New Link Created:", this)
 });
 
 const WebLink = mongoose.model('WebLink', webLinkSchema);

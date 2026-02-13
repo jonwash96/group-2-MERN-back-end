@@ -3,12 +3,7 @@ const Expense = require("../models/Expense");
 const requireAuth = require("../middleware/requireAuth");
 const User = require("../models/User");
 const mongoose = require("mongoose");
-// THIS LINE OF CODE SERVES ONE PURPOSE. MAN OVER MACHINE RE: GIT LOG/PUSH
-
-// all expense routes require auth
 router.use(requireAuth);
-
-// helpers
 function getMonthRangeFromYYYYMM(month) {
   const match = /^(\d{4})-(\d{2})$/.exec(month || "");
   if (!match) return { start: null, end: null };
@@ -16,15 +11,12 @@ function getMonthRangeFromYYYYMM(month) {
   const year = Number(match[1]);
   const monthIndex = Number(match[2]) - 1; // 0-based
   if (monthIndex < 0 || monthIndex > 11) return { start: null, end: null };
-
-  // Use UTC boundaries to avoid local timezone month-shift bugs.
   const start = new Date(Date.UTC(year, monthIndex, 1, 0, 0, 0, 0));
   const end = new Date(Date.UTC(year, monthIndex + 1, 1, 0, 0, 0, 0));
   return { start, end };
 }
 
 function parseMonthOrRange(req) {
-  // supports: ?month=YYYY-MM or ?start=YYYY-MM-DD&end=YYYY-MM-DD
   const { month, start, end } = req.query;
 
   if (month) {
@@ -37,8 +29,6 @@ function parseMonthOrRange(req) {
 
   return { start: null, end: null };
 }
-
-// GET /expenses (index)
 router.get("/", async (req, res) => {
   try {
     const { start, end } = parseMonthOrRange(req);
@@ -50,12 +40,9 @@ router.get("/", async (req, res) => {
 
     res.json(expenses);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: error.message });
   }
 });
-
-// GET /expenses/by-category?month=YYYY-MM
 router.get("/by-category", async (req, res) => {
   try {
     const userId = new mongoose.Types.ObjectId(req.user._id);
@@ -79,12 +66,9 @@ router.get("/by-category", async (req, res) => {
 
     res.json({ range: start && end ? { start, end } : null, categories });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: error.message });
   }
 });
-
-// GET /expenses/:expenseId (show)
 router.get("/:expenseId", async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.expenseId)) {
@@ -96,17 +80,13 @@ router.get("/:expenseId", async (req, res) => {
       user: req.user._id,
       isDeleted: { $ne: true },
     });
-    // .populate("merchant");
 
     if (!expense) return res.status(404).json({ message: "Expense not found." });
     res.json(expense);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: error.message });
   }
 });
-
-// POST /expenses (create)
 router.post("/", async (req, res) => {
   try {
     const payload = { ...req.body, user: req.user._id };
@@ -116,12 +96,9 @@ router.post("/", async (req, res) => {
     await user.save();
     res.status(201).json(expense);
   } catch (error) {
-    console.error(error);
     res.status(400).json({ message: error.message });
   }
 });
-
-// PUT /expenses/:expenseId (update)
 router.put("/:expenseId", async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.expenseId)) {
@@ -140,8 +117,6 @@ router.put("/:expenseId", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
-
-// DELETE /expenses/:expenseId
 router.delete("/:expenseId", async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.expenseId)) {

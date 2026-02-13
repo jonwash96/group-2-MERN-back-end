@@ -1,4 +1,3 @@
-//* MNT
 const mongoose = require('mongoose');
 
 const activitySchema = new mongoose.Schema({
@@ -65,7 +64,6 @@ activitySchema.statics.log = async function(activityData) {
   try {
     return await this.create(activityData);
   } catch (error) {
-    console.error('Failed to log activity:', error);
     return null;
   }
 };

@@ -1,4 +1,3 @@
-//* MNT
 const mongoose = require('mongoose');
 const { webLinkSchema } = require('./WebLink');
 
@@ -21,15 +20,8 @@ const notificationSchema = new mongoose.Schema({
         required:false,
     }
 }, {timestamps: true});
-
-//* MID
 notificationSchema.pre('validate', function() {
     if (this.isNew) this.created_at = Date.now();
-    console.log("@UserSchema. New Notification created", this)
 });
-
-//* MODEL
 const Notification = mongoose.model('Notification', notificationSchema);
-
-//* IO
 module.exports = Notification;

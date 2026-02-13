@@ -15,8 +15,6 @@ function signToken(user) {
   const payload = { _id: user._id, username: user.username };
   return jwt.sign(payload, process.env.SECRET, { expiresIn: "7d" });
 }
-
-// POST /auth/sign-up
 router.post("/sign-up", async (req, res) => {
   try {
     const { username, password, email } = req.body;
@@ -85,16 +83,11 @@ router.post("/sign-up", async (req, res) => {
     await user.populate('notifications activity');
 
     const token = signToken(user);
-
-    // return safe user data
     return res.status(201).json({token, user});
   } catch (error) {
-    console.error(error);
     return res.status(500).json({ message: error.message || "Server error" });
   }
 });
-
-// GET /auth/me
 router.get("/me", requireAuth, async (req, res) => {
   const user = await User.findById(req.user._id)
     .populate({path: 'notifications', populate:{path: 'activityId'}})
@@ -102,8 +95,6 @@ router.get("/me", requireAuth, async (req, res) => {
   if (!user) return res.status(404).json({ message: "User not found." });
   res.json(user);
 });
-
-// POST /auth/sign-in
 router.post("/sign-in", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -136,12 +127,8 @@ router.post("/sign-in", async (req, res) => {
     return res.status(500).json({ message: error.message || "Server error" });
   }
 });
-
-// POST auth/sign-out
 router.post("/sign-out", requireAuth, async (req, res) => {
   try {
-    // optional activity log
-    // await Activity.log({user: req.user._id, action: "user_logout"})
 
     return res.status(200).json({
       message: "Signed out successfully",

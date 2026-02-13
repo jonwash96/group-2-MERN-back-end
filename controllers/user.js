@@ -2,8 +2,6 @@ const router = require("express").Router();
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const requireAuth = require("../middleware/requireAuth");
-
-// Index (non-authenticated) GET /users
 router.get("/", async (req, res) => {
   try {
     const users = await User.find({});
@@ -12,11 +10,8 @@ router.get("/", async (req, res) => {
     res.status(500).json({ err: error.message });
   }
 });
-
-// Get Profile (Authenticated) GET /:userId
 router.get("/:userId", requireAuth, async (req, res) => {
   try {
-    console.log("@users > getUser. isAdmin?", req.user.isAdmin);
     if (req.user._id !== req.params.userId && !req.user.isAdmin) {
       res.status(403);
       throw new Error("Not Authorized");
@@ -31,7 +26,6 @@ router.get("/:userId", requireAuth, async (req, res) => {
 
     res.status(200).json(user);
   } catch (error) {
-    console.error(error);
     if (req.statusCode === 403 || req.statusCode === 404) {
       res.json({ err: error.message });
     } else {
@@ -39,8 +33,6 @@ router.get("/:userId", requireAuth, async (req, res) => {
     }
   }
 });
-
-// PUT - Update
 router.put("/:userId", requireAuth, async (req, res) => {
   try {
     if (req.user._id !== req.params.userId && !req.user.isAdmin) {
@@ -80,8 +72,6 @@ router.put("/:userId", requireAuth, async (req, res) => {
     }
   }
 });
-
-// DELETE
 router.delete("/:userId", requireAuth, async (req, res) => {
   try {
     if (req.user._id !== req.params.userId && !req.user.isAdmin) {
@@ -94,7 +84,6 @@ router.delete("/:userId", requireAuth, async (req, res) => {
 
     res.status(204).json({ message: "Successfully deleted" });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ err: error.message });
   }
 });

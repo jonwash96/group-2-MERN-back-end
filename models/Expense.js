@@ -64,19 +64,13 @@ const expenseSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
-// Index for efficient queries
 expenseSchema.index({ user: 1, date: -1 });
 expenseSchema.index({ user: 1, category: 1 });
 expenseSchema.index({ user: 1, isDeleted: 1 });
-
-// Virtual for month/year grouping
 expenseSchema.virtual('monthYear').get(function() {
   const date = new Date(this.date);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 });
-
-// Static method to get total spending for a user in a date range
 expenseSchema.statics.getTotalSpending = async function(userId, startDate, endDate) {
   const result = await this.aggregate([
     {

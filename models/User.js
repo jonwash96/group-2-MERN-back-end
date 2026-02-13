@@ -1,4 +1,3 @@
-//* MNT
 const mongoose = require('mongoose');
 const { webLinkSchema } = require('./WebLink');
 
@@ -43,15 +42,8 @@ const userSchema = new mongoose.Schema({
         default:[]
     }]
 }, {timestamps: true});
-
-//* MID
 userSchema.pre('validate', function() {
     if (this.isNew) this.created_at = Date.now();
-    console.log("@UserSchema. New User Created:", this)
 });
-
-//* MODEL
 const User = mongoose.model('User', userSchema);
-
-//* IO
 module.exports = User;

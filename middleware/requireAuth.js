@@ -12,7 +12,6 @@ module.exports = function requireAuth(req, res, next) {
     const decoded = jwt.verify(token, process.env.SECRET);
     req.user = decoded;
     admins.includes(req.user._id) ? req.user['isAdmin'] = true : req.user['isAdmin'] = false;
-    console.log("ADMIN??", req.user.isAdmin)
     next();
   } catch (error) {
     return res.status(401).json({ message: "Invalid or expired token" });

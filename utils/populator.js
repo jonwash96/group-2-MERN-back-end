@@ -8,8 +8,6 @@ const User = require('../models/User.js')
 const WebLink = require('../models/WebLink.js')
 
 mongoose.connect(process.env.MONGODB_URI);
-mongoose.connection.on('connected', ()=>console.log("Connected to MongoDB"));
-mongoose.connection.on('error', ()=>console.log("Error Connecting to MongoDB"));
 
 async function createMerchant() {
     const newMerchant = await Merchant.create({
@@ -18,13 +16,11 @@ async function createMerchant() {
 		logo:"https://www.lg.com/content/dam/lge/global/our-brand/src/mocks/bs0002/brand-elements-logo-primary-d.svg",
 		category:"Retail",
     })
-    console.log("Created New Merchant:", newMerchant)
     process.exit();
 }
 
 async function indexMerchants() {
 	const merchants = await Merchant.find();
-	console.log(merchants);
 	process.exit();
 }
 
