@@ -9,9 +9,17 @@ const mongoose = require("mongoose");
 router.use(requireAuth);
 
 // helpers
-function getMonthRange(date = new Date()) {
-  const start = new Date(date.getFullYear(), date.getMonth(), 1);
-  const end = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+function getMonthRangeFromYYYYMM(month) {
+  const match = /^(\d{4})-(\d{2})$/.exec(month || "");
+  if (!match) return { start: null, end: null };
+
+  const year = Number(match[1]);
+  const monthIndex = Number(match[2]) - 1; // 0-based
+  if (monthIndex < 0 || monthIndex > 11) return { start: null, end: null };
+
+  // Use UTC boundaries to avoid local timezone month-shift bugs.
+  const start = new Date(Date.UTC(year, monthIndex, 1, 0, 0, 0, 0));
+  const end = new Date(Date.UTC(year, monthIndex + 1, 1, 0, 0, 0, 0));
   return { start, end };
 }
 
@@ -20,8 +28,7 @@ function parseMonthOrRange(req) {
   const { month, start, end } = req.query;
 
   if (month) {
-    const baseDate = new Date(`${month}-01T00:00:00.000Z`);
-    return getMonthRange(baseDate);
+    return getMonthRangeFromYYYYMM(month);
   }
 
   if (start && end) {
@@ -36,13 +43,10 @@ router.get("/", async (req, res) => {
   try {
     const { start, end } = parseMonthOrRange(req);
 
-    const filter = { user: req.user._id, isDeleted: false };
+    const filter = { user: req.user._id, isDeleted: { $ne: true } };
     if (start && end) filter.date = { $gte: start, $lt: end };
 
-    console.log("@get expenses", req.user);
-    const expenses = await Expense.find({ user: req.user._id }).sort({
-      date: -1,
-    });
+    const expenses = await Expense.find(filter).sort({ date: -1 });
 
     res.json(expenses);
   } catch (error) {
@@ -57,7 +61,7 @@ router.get("/by-category", async (req, res) => {
     const userId = new mongoose.Types.ObjectId(req.user._id);
     const { start, end } = parseMonthOrRange(req);
 
-    const match = { user: userId, isDeleted: false };
+    const match = { user: userId, isDeleted: { $ne: true } };
     if (start && end) match.date = { $gte: start, $lt: end };
 
     const categories = await Expense.aggregate([
@@ -83,15 +87,18 @@ router.get("/by-category", async (req, res) => {
 // GET /expenses/:expenseId (show)
 router.get("/:expenseId", async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.expenseId)) {
+      return res.status(400).json({ message: "Invalid expense id." });
+    }
+
     const expense = await Expense.findOne({
       _id: req.params.expenseId,
       user: req.user._id,
-      isDeleted: false,
+      isDeleted: { $ne: true },
     });
     // .populate("merchant");
 
-    if (!expense)
-      return res.status(500).json({ message: "Expense not found." });
+    if (!expense) return res.status(404).json({ message: "Expense not found." });
     res.json(expense);
   } catch (error) {
     console.error(error);
@@ -106,7 +113,7 @@ router.post("/", async (req, res) => {
     const expense = await Expense.create(payload);
     let user = await User.findById(req.user._id);
     user.expenses.push(expense._id);
-    user.save();
+    await user.save();
     res.status(201).json(expense);
   } catch (error) {
     console.error(error);
@@ -117,8 +124,12 @@ router.post("/", async (req, res) => {
 // PUT /expenses/:expenseId (update)
 router.put("/:expenseId", async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.expenseId)) {
+      return res.status(400).json({ message: "Invalid expense id." });
+    }
+
     const expense = await Expense.findOneAndUpdate(
-      { _id: req.params.expenseId, user: req.user._id },
+      { _id: req.params.expenseId, user: req.user._id, isDeleted: { $ne: true } },
       req.body,
       { new: true, runValidators: true },
     );
@@ -133,10 +144,14 @@ router.put("/:expenseId", async (req, res) => {
 // DELETE /expenses/:expenseId
 router.delete("/:expenseId", async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.expenseId)) {
+      return res.status(400).json({ message: "Invalid expense id." });
+    }
+
     const expense = await Expense.findOneAndUpdate(
-      { _id: req.params.expenseId, user: req.user._id },
-      req.body,
-      { new: true, isDeleted: true },
+      { _id: req.params.expenseId, user: req.user._id, isDeleted: { $ne: true } },
+      { $set: { isDeleted: true } },
+      { new: true, runValidators: true },
     );
 
     if (!expense) return res.status(404).json({ message: "Expense not found" });
