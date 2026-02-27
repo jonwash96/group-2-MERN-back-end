@@ -2,7 +2,9 @@ const router = require("express").Router();
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const requireAuth = require("../middleware/requireAuth");
-router.get("/", async (req, res) => {
+
+router.get("/", requireAuth, async (req, res) => {
+  if (!req.user.isAdmin) res.status(403).json({message: "Forbidden! Must be an admin to view all users. Please sign in with admin credentials or contact the database admin."})
   try {
     const users = await User.find({});
     res.status(200).json(users);
@@ -10,14 +12,16 @@ router.get("/", async (req, res) => {
     res.status(500).json({ err: error.message });
   }
 });
+
 router.get("/:userId", requireAuth, async (req, res) => {
   try {
     if (req.user._id !== req.params.userId && !req.user.isAdmin) {
       res.status(403);
-      throw new Error("Not Authorized");
+      throw new Error("Forbidden");
     }
 
-    const user = await User.findById(req.params.userId);
+    const user = await User.findById(req.params.userId)
+      .populate('notifications activity');
 
     if (!user) {
       res.status(404);
@@ -33,6 +37,7 @@ router.get("/:userId", requireAuth, async (req, res) => {
     }
   }
 });
+
 router.put("/:userId", requireAuth, async (req, res) => {
   try {
     if (req.user._id !== req.params.userId && !req.user.isAdmin) {
@@ -72,6 +77,7 @@ router.put("/:userId", requireAuth, async (req, res) => {
     }
   }
 });
+
 router.delete("/:userId", requireAuth, async (req, res) => {
   try {
     if (req.user._id !== req.params.userId && !req.user.isAdmin) {
