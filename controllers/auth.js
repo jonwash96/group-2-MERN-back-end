@@ -51,7 +51,7 @@ router.post("/sign-up", async (req, res) => {
 
     const welcomeNotification = new Notification({
       _id: welcomeNotificationId,
-      title: "Welcome to the App! Click to set up Your Profile.",
+      title: "Welcome to $pend Sense!",
       description: "Click here to set up your profile",
       status: "unread",
       action: '/profile/edit',
