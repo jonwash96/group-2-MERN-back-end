@@ -15,6 +15,7 @@ function signToken(user) {
   const payload = { _id: user._id, username: user.username };
   return jwt.sign(payload, process.env.SECRET, { expiresIn: "7d" });
 }
+
 router.post("/sign-up", async (req, res) => {
   try {
     const { username, password, email } = req.body;
@@ -25,7 +26,7 @@ router.post("/sign-up", async (req, res) => {
         .json({ message: "Username and password are required" });
     }
 
-    const existingUser = await User.findOne({ username: username.trim() });
+    const existingUser = await User.findOne({ username: {$regex: new RegExp(`^${username.trim()}$`, 'i')} });
 
     if (existingUser) {
       return res
@@ -50,7 +51,7 @@ router.post("/sign-up", async (req, res) => {
 
     const welcomeNotification = new Notification({
       _id: welcomeNotificationId,
-      title: "Welcome to the App! Click to set up Your Profile.",
+      title: "Welcome to $pend Sense!",
       description: "Click here to set up your profile",
       status: "unread",
       action: '/profile/edit',
@@ -88,6 +89,7 @@ router.post("/sign-up", async (req, res) => {
     return res.status(500).json({ message: error.message || "Server error" });
   }
 });
+
 router.get("/me", requireAuth, async (req, res) => {
   const user = await User.findById(req.user._id)
     .populate({path: 'notifications', populate:{path: 'activityId'}})
@@ -95,6 +97,7 @@ router.get("/me", requireAuth, async (req, res) => {
   if (!user) return res.status(404).json({ message: "User not found." });
   res.json(user);
 });
+
 router.post("/sign-in", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -105,7 +108,7 @@ router.post("/sign-in", async (req, res) => {
         .json({ message: "Username and password are required" });
     }
 
-    const user = await User.findOne({ username: username.trim() })
+    const user = await User.findOne({ username: {$regex: new RegExp(`^${username.trim()}$`, 'i')} })
       .select("+password")
       .populate({path: 'notifications', populate:{path: 'activityId'}})
       .populate("notifications activity expenses receipts");
@@ -124,12 +127,13 @@ router.post("/sign-in", async (req, res) => {
 
     return res.status(200).json({ token, user });
   } catch (error) {
+    console.error("@sign-in. error", error)
     return res.status(500).json({ message: error.message || "Server error" });
   }
 });
-router.post("/sign-out", requireAuth, async (req, res) => {
-  try {
 
+router.post("/sign-out", async (req, res) => {
+  try {
     return res.status(200).json({
       message: "Signed out successfully",
     });
